@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+
+# Dataset and generated artifacts
+data/
+outputs/
+outputs_smoke/
+outputs_smoke_fix/
+*.zip
+
+# OS/editor files
+.DS_Store
+Thumbs.db

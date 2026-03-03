@@ -1,0 +1,2 @@
+"""UNN MNIST artifact package."""
+
