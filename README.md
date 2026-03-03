@@ -31,7 +31,4 @@ Kurzer Smoke-Test:
 
 ## Empfehlung Anzahl NNs
 
-- Start: `24` NNs (12 `plain_cnn` + 12 `residual_cnn`) -> guter Kompromiss aus Signifikanz und Laufzeit auf GTX 1070.
-- Solider fuer Paperplots: `32` bis `40` NNs.
-
 Die Standardkonfiguration nutzt `24` Modelle.
