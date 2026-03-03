@@ -9,6 +9,7 @@ from scipy.stats import kendalltau, spearmanr
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 
 def add_metric_vote_scores(
@@ -99,5 +100,130 @@ def plot_metric_correlations(
         fig.savefig(path, dpi=150)
         plt.close(fig)
         output_paths[metric] = path
+
+    return output_paths
+
+
+def _group_frames(results_df: pd.DataFrame, group_column: str | None) -> List[tuple[str, pd.DataFrame]]:
+    grouped: List[tuple[str, pd.DataFrame]] = [("overall", results_df)]
+    if group_column is not None and group_column in results_df.columns:
+        grouped = [(str(name), group.copy()) for name, group in results_df.groupby(group_column, sort=True)]
+    return grouped
+
+
+def _safe_suffix(name: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in name)
+
+
+def plot_metric_correlation_heatmaps(
+    results_df: pd.DataFrame,
+    out_dir: Path,
+    metrics: Sequence[str],
+    targets: Sequence[str],
+    prefix: str,
+    group_column: str | None = None,
+) -> Dict[str, Path]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output_paths: Dict[str, Path] = {}
+
+    metrics_list = list(metrics)
+    targets_list = list(targets)
+    for group_name, group_df in _group_frames(results_df, group_column):
+        corr_matrix = group_df[metrics_list + targets_list].corr(method="spearman")
+        corr_view = corr_matrix.loc[metrics_list, targets_list]
+
+        fig_width = max(6.0, 1.2 * len(targets_list) + 2.0)
+        fig_height = max(4.5, 0.45 * len(metrics_list) + 2.0)
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+
+        image = ax.imshow(corr_view.to_numpy(dtype=float), cmap="coolwarm", vmin=-1.0, vmax=1.0, aspect="auto")
+        ax.set_xticks(range(len(targets_list)))
+        ax.set_xticklabels(targets_list, rotation=35, ha="right")
+        ax.set_yticks(range(len(metrics_list)))
+        ax.set_yticklabels(metrics_list)
+        ax.set_title(f"Spearman correlation heatmap ({group_name})")
+
+        for row_idx, metric in enumerate(metrics_list):
+            for col_idx, target in enumerate(targets_list):
+                value = corr_view.loc[metric, target]
+                if pd.isna(value):
+                    text = "nan"
+                    color = "black"
+                else:
+                    text = f"{value:.2f}"
+                    color = "white" if abs(value) >= 0.5 else "black"
+                ax.text(col_idx, row_idx, text, ha="center", va="center", fontsize=8, color=color)
+
+        fig.colorbar(image, ax=ax, label="Spearman rho")
+        fig.tight_layout()
+
+        path = out_dir / f"{prefix}_corr_heatmap_{_safe_suffix(group_name)}.png"
+        fig.savefig(path, dpi=170)
+        plt.close(fig)
+        output_paths[group_name] = path
+
+    return output_paths
+
+
+def plot_rank_agreement_bump_chart(
+    results_df: pd.DataFrame,
+    out_dir: Path,
+    metrics: Sequence[str],
+    target: str,
+    prefix: str,
+    lower_is_better: Sequence[str] = ("jacob_cov",),
+    group_column: str | None = None,
+) -> Dict[str, Path]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output_paths: Dict[str, Path] = {}
+    lower_set = set(lower_is_better)
+    metric_list = list(metrics)
+    rank_columns = [target] + metric_list
+    family_colors = {"plain_cnn": "#1f77b4", "residual_cnn": "#d62728"}
+
+    for group_name, group_df in _group_frames(results_df, group_column):
+        rank_df = pd.DataFrame(index=group_df.index)
+        rank_df[target] = group_df[target].rank(method="min", ascending=False)
+        for metric in metric_list:
+            rank_df[metric] = group_df[metric].rank(method="min", ascending=(metric in lower_set))
+
+        x_positions = list(range(len(rank_columns)))
+        fig_width = max(7.5, 1.25 * len(rank_columns))
+        fig_height = max(5.0, 0.28 * len(group_df) + 3.5)
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+
+        for row_idx in group_df.index:
+            family = str(group_df.at[row_idx, "family"]) if "family" in group_df.columns else "overall"
+            color = family_colors.get(family, "#7f7f7f")
+            ax.plot(
+                x_positions,
+                rank_df.loc[row_idx, rank_columns].to_numpy(dtype=float),
+                color=color,
+                alpha=0.45,
+                linewidth=1.1,
+            )
+
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(rank_columns, rotation=30, ha="right")
+        ax.set_ylabel("Rank (1 = best)")
+        ax.set_xlabel("Ranking source")
+        ax.set_title(f"Rank agreement bump chart vs {target} ({group_name})")
+        ax.set_ylim(len(group_df) + 0.5, 0.5)
+        ax.grid(axis="y", linestyle=":", linewidth=0.6, alpha=0.7)
+
+        if "family" in group_df.columns and group_df["family"].nunique() > 1:
+            legend_handles = [
+                Line2D([0], [0], color=color, lw=2, label=name)
+                for name, color in family_colors.items()
+                if name in set(group_df["family"].astype(str))
+            ]
+            if legend_handles:
+                ax.legend(handles=legend_handles, frameon=False, loc="upper right")
+
+        fig.tight_layout()
+        path = out_dir / f"{prefix}_rank_agreement_{_safe_suffix(group_name)}_{target}.png"
+        fig.savefig(path, dpi=170)
+        plt.close(fig)
+        output_paths[group_name] = path
 
     return output_paths

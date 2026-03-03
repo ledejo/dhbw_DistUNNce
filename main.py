@@ -12,7 +12,13 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from src.analysis import add_metric_vote_scores, build_metric_mapping_table, plot_metric_correlations
+from src.analysis import (
+    add_metric_vote_scores,
+    build_metric_mapping_table,
+    plot_metric_correlation_heatmaps,
+    plot_metric_correlations,
+    plot_rank_agreement_bump_chart,
+)
 from src.metrics import compute_all_zero_cost_metrics
 from src.models import get_model_suite
 from src.train import train_short
@@ -333,6 +339,38 @@ def main() -> None:
             target=target,
             prefix="overall",
         )
+    _ = plot_metric_correlation_heatmaps(
+        results_df=results_df,
+        out_dir=out_dir,
+        metrics=metrics_for_corr,
+        targets=CORR_TARGETS,
+        prefix="overall",
+        group_column=None,
+    )
+    _ = plot_rank_agreement_bump_chart(
+        results_df=results_df,
+        out_dir=out_dir,
+        metrics=metrics_for_corr,
+        target="val_acc",
+        prefix="overall",
+    )
+    if args.include_family_split:
+        _ = plot_metric_correlation_heatmaps(
+            results_df=results_df,
+            out_dir=out_dir,
+            metrics=metrics_for_corr,
+            targets=CORR_TARGETS,
+            prefix="by_family",
+            group_column="family",
+        )
+        _ = plot_rank_agreement_bump_chart(
+            results_df=results_df,
+            out_dir=out_dir,
+            metrics=metrics_for_corr,
+            target="val_acc",
+            prefix="by_family",
+            group_column="family",
+        )
 
     top_acc = results_df.sort_values("val_acc", ascending=False).iloc[0]
     top_vote = results_df.sort_values("vote_score", ascending=False).iloc[0]
@@ -345,7 +383,7 @@ def main() -> None:
         print(f"Family mapping: {family_mapping_path.resolve()}", flush=True)
     print(f"Top by val_acc: {top_acc['model']} ({top_acc['val_acc']:.4f})", flush=True)
     print(f"Top by vote_score: {top_vote['model']} ({top_vote['vote_score']:.2f})", flush=True)
-    print("Plots created for: val_acc, val_f1_macro", flush=True)
+    print("Plots created: scatter correlations, correlation heatmaps, rank-agreement bump charts", flush=True)
 
 
 if __name__ == "__main__":
