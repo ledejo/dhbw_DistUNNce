@@ -1,6 +1,6 @@
 ﻿# Untrained CNN MNIST Artifact
 
-Eigenstaendiges Projekt fuer den Vergleich von Zero-Cost-Metriken auf MNIST mit zwei Architekturfamilien:
+Projekt fuer den Vergleich von Zero-Cost-Metriken auf MNIST mit zwei Architekturfamilien:
 
 - `plain_cnn`: klassische kleine CNNs ohne Residual-Skip-Block
 - `residual_cnn`: kleine Residual-CNNs mit Skip-Connections
@@ -79,7 +79,7 @@ macOS/Linux:
 Optional:
 
 - Andere Quell-CSV nutzen: `--results-csv <pfad/zur/results_mnist.csv>`
-- Ranking-Richtung anpassen: `--lower-is-better jacob_cov,grasp`
+
 
 ## Wichtige Output-Dateien
 
