@@ -15,26 +15,75 @@ Eigenstaendiges Projekt fuer den Vergleich von Zero-Cost-Metriken auf MNIST mit 
 
 Zusatz: Korrelationen werden `overall` und optional pro `family` gespeichert.
 
-## Start
+## Voraussetzungen
 
-Im Projektordner `C:\Users\User\OneDrive\Desktop\Distunnce` ausfuehren:
+- Python 3.10+ empfohlen
+- CUDA-faehige GPU empfohlen (optional erzwungen mit `--require-cuda`)
+- Abhaengigkeiten aus `requirements.txt`
+
+## Setup
+
+Windows (PowerShell):
 
 ```powershell
-.\.venv\Scripts\python.exe .\main.py --require-cuda --log-batches 20 --include-family-split
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -U pip
+pip install -r requirements.txt
 ```
 
-Kurzer Smoke-Test:
+macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+pip install -r requirements.txt
+```
+
+## Kompletter Lauf (Training + Analyse)
+
+Fuehrt den kompletten Benchmark aus: Zero-Cost-Metriken berechnen, alle Modelle trainieren, CSVs und Plots erzeugen.
+
+Windows (PowerShell):
 
 ```powershell
-.\.venv\Scripts\python.exe .\main.py --max-models 2 --epochs 1 --metric-batches 1 --num-workers 0 --require-cuda --log-batches 10 --out-dir .\outputs_smoke
+.\.venv\Scripts\python.exe .\main.py --require-cuda --log-batches 20 --include-family-split --out-dir .\outputs
 ```
 
-Nur Visualisierungen/Mapping aus vorhandener CSV neu erzeugen (kein Training):
+macOS/Linux:
+
+```bash
+.venv/bin/python main.py --require-cuda --log-batches 20 --include-family-split --out-dir ./outputs
+```
+
+Hinweis: Standardmaessig werden `24` Modelle ausgewertet.
+
+## Nur Outputs erneuern (kein Training)
+
+Verwendet eine vorhandene `results_mnist.csv` und erzeugt daraus neue Mapping-CSVs und Visualisierungen.
+Es werden dabei keine Netze neu trainiert.
+
+Windows (PowerShell):
 
 ```powershell
 .\.venv\Scripts\python.exe .\main.py --replot-only --out-dir .\outputs --include-family-split
 ```
 
-## Empfehlung Anzahl NNs
+macOS/Linux:
 
-Die Standardkonfiguration nutzt `24` Modelle.
+```bash
+.venv/bin/python main.py --replot-only --out-dir ./outputs --include-family-split
+```
+
+Optional:
+
+- Andere Quell-CSV nutzen: `--results-csv <pfad/zur/results_mnist.csv>`
+- Ranking-Richtung anpassen: `--lower-is-better jacob_cov,grasp`
+
+## Wichtige Output-Dateien
+
+- `outputs/results_mnist.csv`: Gesamtergebnis pro Modell
+- `outputs/metric_mapping_overall.csv`: Spearman/Kendall ueber alle Modelle
+- `outputs/metric_mapping_by_family.csv`: Spearman/Kendall pro Modellfamilie (bei `--include-family-split`)
+- `outputs/*.png`: Scatter-Plots, Korrelations-Heatmaps und Rank-Agreement-Bump-Charts
