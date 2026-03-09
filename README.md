@@ -29,6 +29,12 @@ Kurzer Smoke-Test:
 .\.venv\Scripts\python.exe .\main.py --max-models 2 --epochs 1 --metric-batches 1 --num-workers 0 --require-cuda --log-batches 10 --out-dir .\outputs_smoke
 ```
 
+Nur Visualisierungen/Mapping aus vorhandener CSV neu erzeugen (kein Training):
+
+```powershell
+.\.venv\Scripts\python.exe .\main.py --replot-only --out-dir .\outputs --include-family-split
+```
+
 ## Empfehlung Anzahl NNs
 
 Die Standardkonfiguration nutzt `24` Modelle.

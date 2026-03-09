@@ -15,7 +15,7 @@ from matplotlib.lines import Line2D
 def add_metric_vote_scores(
     results_df: pd.DataFrame,
     vote_metrics: Sequence[str],
-    lower_is_better: Sequence[str] = ("jacob_cov",),
+    lower_is_better: Sequence[str] = ("jacob_cov", "grasp"),
 ) -> pd.DataFrame:
     df = results_df.copy()
     n_models = len(df)
@@ -171,7 +171,7 @@ def plot_rank_agreement_bump_chart(
     metrics: Sequence[str],
     target: str,
     prefix: str,
-    lower_is_better: Sequence[str] = ("jacob_cov",),
+    lower_is_better: Sequence[str] = ("jacob_cov", "grasp"),
     group_column: str | None = None,
 ) -> Dict[str, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
