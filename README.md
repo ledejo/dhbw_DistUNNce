@@ -11,6 +11,7 @@ Projekt fuer den Vergleich von Zero-Cost-Metriken auf MNIST mit zwei Architektur
 - Training/Eval: `val_acc`, `val_f1_macro`, `val_mse`
 - Effizienz: `train_time_sec`, `infer_ms_per_sample`
 - Ensemble: `vote_score`
+- Mini-Voting (nur `synflow` + `naswot`): `vote_score_synflow_naswot`
 - Stages im Ergebnis: `stage_untrained_metrics=untrained`, `stage_trained_eval=trained`
 
 Zusatz: Korrelationen werden `overall` und optional pro `family` gespeichert.
@@ -87,3 +88,4 @@ Optional:
 - `outputs/metric_mapping_overall.csv`: Spearman/Kendall ueber alle Modelle
 - `outputs/metric_mapping_by_family.csv`: Spearman/Kendall pro Modellfamilie (bei `--include-family-split`)
 - `outputs/*.png`: Scatter-Plots, Korrelations-Heatmaps und Rank-Agreement-Bump-Charts
+- `outputs/overall_synflow_vs_naswot_correlation.png`: Direkter Korrelations-Plot zwischen SynFlow und NASWOT

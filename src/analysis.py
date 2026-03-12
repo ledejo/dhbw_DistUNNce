@@ -104,6 +104,55 @@ def plot_metric_correlations(
     return output_paths
 
 
+def plot_metric_pair_correlation(
+    results_df: pd.DataFrame,
+    out_dir: Path,
+    x_metric: str,
+    y_metric: str,
+    prefix: str,
+) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    has_family = "family" in results_df.columns
+    family_colors = {"plain_cnn": "#1f77b4", "residual_cnn": "#d62728"}
+
+    pair_df = results_df[[x_metric, y_metric]].dropna()
+    if len(pair_df) >= 2:
+        spearman_rho, spearman_p = spearmanr(pair_df[x_metric], pair_df[y_metric])
+        pearson_r = pair_df[x_metric].corr(pair_df[y_metric], method="pearson")
+    else:
+        spearman_rho, spearman_p, pearson_r = float("nan"), float("nan"), float("nan")
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    if has_family:
+        for fam_name, fam_df in results_df.groupby("family"):
+            ax.scatter(
+                fam_df[x_metric],
+                fam_df[y_metric],
+                alpha=0.8,
+                label=fam_name,
+                color=family_colors.get(str(fam_name), None),
+            )
+        ax.legend(frameon=False)
+    else:
+        ax.scatter(results_df[x_metric], results_df[y_metric], alpha=0.8)
+
+    ax.set_xlabel(x_metric)
+    ax.set_ylabel(y_metric)
+    if pd.notna(spearman_rho) and pd.notna(pearson_r):
+        ax.set_title(
+            f"{x_metric} vs {y_metric}\n"
+            f"Spearman rho={spearman_rho:.3f} (p={spearman_p:.2g}), Pearson r={pearson_r:.3f}"
+        )
+    else:
+        ax.set_title(f"{x_metric} vs {y_metric}")
+    fig.tight_layout()
+
+    path = out_dir / f"{prefix}_{x_metric}_vs_{y_metric}_correlation.png"
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    return path
+
+
 def _group_frames(results_df: pd.DataFrame, group_column: str | None) -> List[tuple[str, pd.DataFrame]]:
     grouped: List[tuple[str, pd.DataFrame]] = [("overall", results_df)]
     if group_column is not None and group_column in results_df.columns:

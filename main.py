@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 from src.analysis import (
     add_metric_vote_scores,
     build_metric_mapping_table,
+    plot_metric_pair_correlation,
     plot_metric_correlation_heatmaps,
     plot_metric_correlations,
     plot_rank_agreement_bump_chart,
@@ -24,6 +25,9 @@ from src.train import train_short
 
 
 ZERO_COST_METRICS = ["snip", "grasp", "synflow", "fisher", "jacob_cov", "grad_norm", "naswot"]
+SMALL_VOTE_METRICS = ("synflow", "naswot")
+SMALL_VOTE_SCORE_COL = "vote_score_synflow_naswot"
+SMALL_VOTE_RANK_COL = "vote_rank_synflow_naswot"
 CORR_TARGETS = ["val_acc", "val_f1_macro", "val_mse", "train_time_sec", "infer_ms_per_sample"]
 DEFAULT_LOWER_IS_BETTER = ("jacob_cov", "grasp")
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -260,7 +264,15 @@ def _postprocess_and_plot(
         vote_metrics=ZERO_COST_METRICS,
         lower_is_better=lower_is_better,
     )
-    metrics_for_corr = ZERO_COST_METRICS + ["vote_score"]
+    small_vote_df = add_metric_vote_scores(
+        results_df=results_df,
+        vote_metrics=SMALL_VOTE_METRICS,
+        lower_is_better=lower_is_better,
+    )
+    results_df[SMALL_VOTE_SCORE_COL] = small_vote_df["vote_score"]
+    results_df[SMALL_VOTE_RANK_COL] = small_vote_df["vote_rank"]
+
+    metrics_for_corr = ZERO_COST_METRICS + ["vote_score", SMALL_VOTE_SCORE_COL]
 
     results_path = out_dir / "results_mnist.csv"
     results_df.to_csv(results_path, index=False)
@@ -293,6 +305,13 @@ def _postprocess_and_plot(
             target=target,
             prefix="overall",
         )
+    _ = plot_metric_pair_correlation(
+        results_df=results_df,
+        out_dir=out_dir,
+        x_metric="synflow",
+        y_metric="naswot",
+        prefix="overall",
+    )
     _ = plot_metric_correlation_heatmaps(
         results_df=results_df,
         out_dir=out_dir,
@@ -362,6 +381,7 @@ def main() -> None:
         total_models = len(results_df)
         top_acc = results_df.sort_values("val_acc", ascending=False).iloc[0]
         top_vote = results_df.sort_values("vote_score", ascending=False).iloc[0]
+        top_small_vote = results_df.sort_values(SMALL_VOTE_SCORE_COL, ascending=False).iloc[0]
         print("\n=== Replot finished (no training run) ===", flush=True)
         print(f"Models in CSV: {total_models}", flush=True)
         print(f"Results: {results_path.resolve()}", flush=True)
@@ -370,6 +390,10 @@ def main() -> None:
             print(f"Family mapping: {family_mapping_path.resolve()}", flush=True)
         print(f"Top by val_acc: {top_acc['model']} ({top_acc['val_acc']:.4f})", flush=True)
         print(f"Top by vote_score: {top_vote['model']} ({top_vote['vote_score']:.2f})", flush=True)
+        print(
+            f"Top by {SMALL_VOTE_SCORE_COL}: {top_small_vote['model']} ({top_small_vote[SMALL_VOTE_SCORE_COL]:.2f})",
+            flush=True,
+        )
         print("Plots created: scatter correlations, correlation heatmaps, rank-agreement bump charts", flush=True)
         return
 
@@ -469,6 +493,7 @@ def main() -> None:
 
     top_acc = results_df.sort_values("val_acc", ascending=False).iloc[0]
     top_vote = results_df.sort_values("vote_score", ascending=False).iloc[0]
+    top_small_vote = results_df.sort_values(SMALL_VOTE_SCORE_COL, ascending=False).iloc[0]
 
     print("\n=== Untrained CNN MNIST Artifact finished ===", flush=True)
     print(f"Models: {total_models} (plain_cnn + residual_cnn)", flush=True)
@@ -478,6 +503,10 @@ def main() -> None:
         print(f"Family mapping: {family_mapping_path.resolve()}", flush=True)
     print(f"Top by val_acc: {top_acc['model']} ({top_acc['val_acc']:.4f})", flush=True)
     print(f"Top by vote_score: {top_vote['model']} ({top_vote['vote_score']:.2f})", flush=True)
+    print(
+        f"Top by {SMALL_VOTE_SCORE_COL}: {top_small_vote['model']} ({top_small_vote[SMALL_VOTE_SCORE_COL]:.2f})",
+        flush=True,
+    )
     print("Plots created: scatter correlations, correlation heatmaps, rank-agreement bump charts", flush=True)
 
 
